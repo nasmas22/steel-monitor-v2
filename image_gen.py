@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-image_gen.py — Generate branded price images with RTL Persian support.
+image_gen.py — Generate branded price images with proper RTL Persian support.
 """
 import os
+import re
 from datetime import datetime, timedelta, timezone
 import jdatetime
 from PIL import Image, ImageDraw, ImageFont
 import arabic_reshaper
-from bidi.algorithm import get_display
 
 from config import (
     FONTS_DIR, OUTPUT_DIR, COMPANY_NAME, COMPANY_PRODUCTS, CONTACTS, FA_DAYS
@@ -22,7 +22,6 @@ def load_fonts():
         font_small = ImageFont.truetype(str(FONTS_DIR / 'Vazirmatn.ttf'), 18)
         font_tiny = ImageFont.truetype(str(FONTS_DIR / 'Vazirmatn.ttf'), 14)
     except Exception:
-        # Fallback to default font
         font_bold = ImageFont.load_default()
         font_med = font_bold
         font_small = font_bold
@@ -32,15 +31,27 @@ def load_fonts():
 
 # ── Persian Text Helpers ───────────────────────────────────────────────
 def fa(text):
-    """Convert Persian text for PIL rendering."""
+    """
+    Convert Persian text for PIL rendering.
+    Just reshape for ligatures - don't use bidi (it reverses for PIL).
+    """
+    # Only reshape Arabic/Persian characters for proper ligatures
     reshaped = arabic_reshaper.reshape(text)
-    return get_display(reshaped)
+    return reshaped
 
 def draw_centered(draw, y, text, font, fill, width):
     """Draw centered text."""
-    bbox = draw.textbbox((0, 0), fa(text), font=font)
+    display_text = fa(text)
+    bbox = draw.textbbox((0, 0), display_text, font=font)
     tw = bbox[2] - bbox[0]
-    draw.text(((width - tw) // 2, y), fa(text), font=font, fill=fill)
+    draw.text(((width - tw) // 2, y), display_text, font=font, fill=fill)
+
+def draw_right(draw, y, text, font, fill, max_x):
+    """Draw right-aligned text."""
+    display_text = fa(text)
+    bbox = draw.textbbox((0, 0), display_text, font=font)
+    tw = bbox[2] - bbox[0]
+    draw.text((max_x - tw, y), display_text, font=font, fill=fill)
 
 # ── Get Shamsi Date ────────────────────────────────────────────────────
 def get_shamsi_date():
@@ -87,17 +98,19 @@ def generate_price_image(channel, prices, source_url, output_path=None):
     y = 130
     draw.rounded_rectangle([30, y, W-30, y+38], radius=8, fill='#E8EAF6')
     
+    # RTL columns (right to left)
     cols = [
-        ('محصول', 30, 180),
-        ('گرید', 180, 330),
+        ('قیمت (تومان)', 500, W-30),
         ('سایز', 330, 500),
-        ('قیمت (تومان)', 500, W-30)
+        ('گرید', 180, 330),
+        ('محصول', 30, 180),
     ]
     
     for label, x1, x2 in cols:
-        bbox = draw.textbbox((0, 0), fa(label), font=font_small)
+        display_text = fa(label)
+        bbox = draw.textbbox((0, 0), display_text, font=font_small)
         tw = bbox[2] - bbox[0]
-        draw.text(((x1 + x2 - tw) // 2, y + 8), fa(label), font=font_small, fill='#1A237E')
+        draw.text(((x1 + x2 - tw) // 2, y + 8), display_text, font=font_small, fill='#1A237E')
     
     # ── Table Rows ─────────────────────────────────────────────────────
     y = y + 42
@@ -119,7 +132,6 @@ def generate_price_image(channel, prices, source_url, output_path=None):
             grade = 'B500B'
         
         # Extract size (number or range)
-        import re
         size_match = re.search(r'(\d+(?:\s*الی\s*\d+)?)', product)
         if size_match:
             size = size_match.group(1)
@@ -131,17 +143,19 @@ def generate_price_image(channel, prices, source_url, output_path=None):
         elif any(x in product.lower() for x in ['ورق', 'sheet']):
             product_type = 'ورق'
         
+        # RTL column values (right to left)
         vals = [
-            (product_type, 30, 180),
-            (grade, 180, 330),
+            (f"{p['price']:,}", 500, W-30),
             (size, 330, 500),
-            (f"{p['price']:,}", 500, W-30)
+            (grade, 180, 330),
+            (product_type, 30, 180),
         ]
         
         for val, x1, x2 in vals:
-            bbox = draw.textbbox((0, 0), fa(val), font=font_small)
+            display_text = fa(val)
+            bbox = draw.textbbox((0, 0), display_text, font=font_small)
             tw = bbox[2] - bbox[0]
-            draw.text(((x1 + x2 - tw) // 2, y + 8), fa(val), font=font_small, fill='#333333')
+            draw.text(((x1 + x2 - tw) // 2, y + 8), display_text, font=font_small, fill='#333333')
         
         y += 42
     
@@ -151,9 +165,12 @@ def generate_price_image(channel, prices, source_url, output_path=None):
     y += 10
     
     # ── Contact Info ───────────────────────────────────────────────────
-    draw_centered(draw, y, f"شعبه تبریز ☎️ {' | '.join(CONTACTS['tabriz'])}", font_small, '#666666', W)
+    tabriz_contact = f"شعبه تبریز ☎️ {' | '.join(CONTACTS['tabriz'])}"
+    draw_centered(draw, y, tabriz_contact, font_small, '#666666', W)
     y += 25
-    draw_centered(draw, y, f"شعبه مرکزی تهران ☎️ {' | '.join(CONTACTS['tehran'])}", font_small, '#666666', W)
+    
+    tehran_contact = f"شعبه مرکزی تهران ☎️ {' | '.join(CONTACTS['tehran'])}"
+    draw_centered(draw, y, tehran_contact, font_small, '#666666', W)
     
     # ── Save ───────────────────────────────────────────────────────────
     if output_path is None:

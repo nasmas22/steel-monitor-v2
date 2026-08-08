@@ -8,6 +8,7 @@
 - **استخراج هوشمند قیمت** — با پشتیبانی از اعداد فارسی و عربی
 - **یکپارچه‌سازی Vision AI** — خواندن قیمت از عکس با هوش مصنوعی
 - **تولید عکس برنددار** — کارت قیمت حرفه‌ای با برند شرکت
+- **فونت وزیرمتن** — فونت فارسی حرفه‌ای با پشتیبانی کامل RTL
 - **انتشار خودکار** — پست در کانال تلگرام با لینک منبع
 - **جلوگیری از تکرار** — ردیابی آخرین پست پردازش شده هر کانال
 - **تشخیص داده پرت** — حذف قیمت‌های بیش از ۲۰٪ از میانه
@@ -20,10 +21,10 @@
 steel-monitor-v2/
 ├── config.py           # تنظیمات مرکزی
 ├── scraper.py          # اسکرپر تلگرام
-├── image_gen.py        # تولید عکس
+├── image_gen.py        # تولید عکس با RTL
 ├── telegram_post.py    # ارسال به تلگرام
 ├── monitor.py          # اسکریپت اصلی
-├── fonts/              # فونت‌ها
+├── fonts/              # فونت وزیرمتن
 │   ├── Vazirmatn-Bold.ttf
 │   └── Vazirmatn.ttf
 ├── output/             # عکس‌های تولید شده
@@ -69,6 +70,20 @@ python3 monitor.py --list
 | @pardissteel1 | پردیس استیل |
 | @ArianSteel | آرین استیل |
 | @javidsteel_bonab | جاوید استیل بناب |
+
+## 🖼️ فونت وزیرمتن
+
+این پروژه از **فونت وزیرمتن** (Vazirmatn) استفاده میکنه که:
+- فونت فارسی حرفه‌ای با طراحی مدرن
+- پشتیبانی کامل از **RTL** (راست به چپ)
+- لیگاتورهای صحیح فارسی و عربی
+- مناسب برای رابط‌های کاربری و اسناد
+
+### دانلود فونت
+```bash
+curl -sL -o fonts/Vazirmatn.ttf "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Regular.ttf"
+curl -sL -o fonts/Vazirmatn-Bold.ttf "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Bold.ttf"
+```
 
 ## ⚙️ تنظیمات
 
