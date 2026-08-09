@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import jdatetime
 from PIL import Image, ImageDraw, ImageFont
 import arabic_reshaper
+from bidi.algorithm import get_display
 
 from config import (
     FONTS_DIR, OUTPUT_DIR, COMPANY_NAME, COMPANY_PRODUCTS, CONTACTS, FA_DAYS
@@ -33,11 +34,16 @@ def load_fonts():
 def fa(text):
     """
     Convert Persian text for PIL rendering.
-    Just reshape for ligatures - don't use bidi (it reverses for PIL).
+    Reshape for ligatures + BiDi + reverse for PIL's LTR renderer.
     """
+    if not text:
+        return text
     # Only reshape Arabic/Persian characters for proper ligatures
     reshaped = arabic_reshaper.reshape(text)
-    return reshaped
+    # Apply BiDi algorithm for correct RTL visual ordering
+    display = get_display(reshaped)
+    # PIL renders left-to-right, so reverse the BiDi output
+    return display[::-1]
 
 def draw_centered(draw, y, text, font, fill, width):
     """Draw centered text."""
